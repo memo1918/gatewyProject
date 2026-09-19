@@ -1,7 +1,9 @@
 # Gateway Cloud Project
-Edge Device -> OrangePi 3b
-Gateway -> PC
-Cloud -> AWS E2C Instance
+**Edge Device (OrangePi):** Runs a simple, blocking HTTP Server. Its only job is to wait for a request, read the sensor, and reply.
+
+**Gateway (Laptop):** Acts as the "Brain." It runs an HTTP Client (to talk down to the Edge) and an MQTT Client (to talk up to the Cloud).
+
+**Cloud (AWS IoT Core / EC2):** Acts as the MQTT Broker. It receives scheduled data and publishes "Measure Now" commands down to the Gateway.
 
 
 
@@ -21,6 +23,13 @@ Gateway <-MQTT-> Cloud
 
 Cloud is also MQTT Broker
 
+## Core Logic Notes
+
+1. Gateway maintains a state flag. This flag shows if we are currently waiting responce from Edge Device. ie "is_waiting_for_edge"
+
+2. Handling "Measure Now": Gateway checks if we are already waiting for responce from the Edge Device. If yes we simply wait and return that. If not we send a new request to the Edge Device and wait and return that. (Edge receives http requests one at a time)
+
+3. Command Duplication: Gateway sets a flag when reciving request from cloud, as long as this is set true (meaning we have not replied back) new messages are ignored.
 
 ## Requirements
 1. Core Data Flow (Upwards)
