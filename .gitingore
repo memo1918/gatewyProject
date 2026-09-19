@@ -1,0 +1,113 @@
+# ==========================================
+# Build Directories & Artifacts
+# ==========================================
+# Generic build directory names
+[Bb]uild/
+[Bb]uild-*/
+[Bb]ins/
+[Oo]ut/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CMakeLists.txt.user
+CompileFlags.txt
+compile_commands.json
+CTestTestfile.cmake
+Makefile
+*.cmake
+!/CMakeLists.txt
+!/cmake/*.cmake
+!/cmake/*/*.cmake
+
+# C/C++ Object files and libraries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debugging and symbol files
+*.pdb
+*.idb
+*.dSYM/
+*.ilk
+
+# Coverage and profiling tools
+*.gcno
+*.gcda
+*.gcov
+*.profraw
+*.profdata
+
+# ==========================================
+# IDEs & Code Editors
+# ==========================================
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Visual Studio
+.vs/
+*.user
+*.userosv
+*.sln
+*.vcxproj
+*.vcxproj.filters
+
+# CLion / JetBrains
+.idea/
+cmake-build-*/
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace
+
+# Eclipse
+.project
+.cproject
+.settings/
+
+# Qt Creator
+*.user
+
+# ==========================================
+# Dependency Managers & External Tools
+# ==========================================
+# vcpkg
+vcpkg_installed/
+
+# Conan
+conanbuildinfo.*
+conaninfo.txt
+graph_info.json
+
+# ==========================================
+# System & Miscellaneous
+# ==========================================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
