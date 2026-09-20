@@ -34,6 +34,8 @@ Cloud is also MQTT Broker
 
 3. Command Duplication: Gateway sets a flag when reciving request from cloud, as long as this is set true (meaning we have not replied back) new messages are ignored.
 
+4. gateway's get sensor data and wait listen for mqtt from cloud shold run async.
+
 ## Requirements
 1. Core Data Flow (Upwards)
 
