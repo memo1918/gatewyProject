@@ -10,7 +10,10 @@
 ### Sensor Data Flow
 Edge Device -> Gateway -> Cloud
 
-
+Data:
+Orangepi tempeture senesor data located in /sys/class/hwmon
+SOC: hwmon0/temp1_input
+GPU: hwmon1/temp1_input
 
 ### Remote Control Flow
 Cloud -> Gateway -> Edge Device
