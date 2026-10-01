@@ -33,6 +33,7 @@ auto last_request_time = std::chrono::steady_clock::now();
 // Function to get data from the edge device
 std::string getData(std::string endpoint)
 {
+  
   cpr::Response r = cpr::Get(cpr::Url{(edgeDevice1 + endpoint)}, cpr::Timeout{2000});
   // Check network error
   if (r.error.code != cpr::ErrorCode::OK) {
@@ -45,7 +46,11 @@ std::string getData(std::string endpoint)
     return "";
   }
 
-  return r.text; 
+  auto now = std::chrono::system_clock::now();
+  auto epoch = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+
+  // Return the response text along with the epoch timestamp
+  return r.text + "," + std::to_string(epoch); 
 }
 
 // Function that runs in a separate thread to fetch data from the edge device
