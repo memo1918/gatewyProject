@@ -1,78 +1,79 @@
 # Gateway Cloud Project
-**Edge Device (OrangePi):** Runs a simple, blocking HTTP Server. Its only job is to wait for a request, read the sensor, and reply.
 
-**Gateway (Laptop):** Acts as the "Brain." It runs an HTTP Client (to talk down to the Edge) and an MQTT Client (to talk up to the Cloud).
+This project connects an Orange Pi to a gateway and a small cloud dashboard.
 
-**Cloud (AWS IoT Core / EC2):** Acts as the MQTT Broker. It receives scheduled data and publishes "Measure Now" commands down to the Gateway.
+**Edge Device (Orange Pi):** Runs a simple blocking HTTP server. It reads the hardware temperature files and returns a value when the Gateway asks for one.
 
+**Gateway (Laptop):** Acts as the middle layer. It requests measurements from the Edge Device over HTTP and publishes them to the Cloud over MQTT.
 
+**Cloud:** Runs the dashboard and uses MQTT to receive measurements and send `Measure Now` commands to the Gateway.
 
-### Sensor Data Flow
-Edge Device -> Gateway -> Cloud
+## Sensor Data Flow
 
-Data:
-Orangepi tempeture senesor data located in /sys/class/hwmon
-SOC: hwmon0/temp1_input
-GPU: hwmon1/temp1_input
+`Edge Device -> Gateway -> Cloud`
 
-### Remote Control Flow
-Cloud -> Gateway -> Edge Device
+The Orange Pi reads temperature data from `/sys/class/hwmon`:
 
+- SoC: `hwmon0/temp1_input`
+- GPU: `hwmon1/temp1_input`
 
+The Edge Device exposes these HTTP endpoints:
 
-### Communication Protocols
-Edge Device <-HTTP-> Gateway
-Gateway <-MQTT-> Cloud
+- `/sensor1` returns the SoC temperature.
+- `/sensor2` returns the GPU temperature.
 
-Cloud is also MQTT Broker
+The Gateway currently requests `/sensor1`. The response is sent to the Cloud as:
 
-## Core Logic Notes
+```text
+temperature,timestamp
+```
 
-1. Gateway maintains a state flag. This flag shows if we are currently waiting responce from Edge Device. ie "is_waiting_for_edge"
+## Remote Control Flow
 
-2. Handling "Measure Now": Gateway checks if we are already waiting for responce from the Edge Device. If yes we simply wait and return that. If not we send a new request to the Edge Device and wait and return that. (Edge receives http requests one at a time)
+`Cloud -> Gateway -> Edge Device`
 
-3. Command Duplication: Gateway sets a flag when reciving request from cloud, as long as this is set true (meaning we have not replied back) new messages are ignored.
+The Cloud publishes a command to the Gateway's MQTT command topic. The Gateway then requests a fresh measurement from the Edge Device.
 
-4. gateway's get sensor data and wait listen for mqtt from cloud shold run async.
+## Communication Protocols
 
-5. if request timeouts to edge device, gateway simply tries again on the next interval.
+- Edge Device <-> Gateway: HTTP
+- Gateway <-> Cloud: MQTT
 
-6. Reconnection between Cloud-Gateway happenes automaticly by Paho MQTT. We set the `is_cloud_connected` flag and buffer is send to cloud.
+The current development setup uses HiveMQ's public MQTT broker. The Cloud application also provides the dashboard over HTTP.
+
+## Gateway Logic
+
+1. The Gateway checks the Edge Device every five seconds.
+2. An HTTP request runs in a worker thread so the MQTT and timer loop can continue running.
+3. `Measure Now` sets a flag. If several commands arrive while a request is already running, the flag keeps the next measurement request from being lost, but multiple commands are coalesced into one request.
+4. An Edge Device request has a two-second timeout. A failed request is logged and the next scheduled interval can try again.
+5. When the Cloud connection is unavailable, completed measurements are stored in an in-memory buffer. The Gateway publishes the buffer after reconnecting.
+6. MQTT uses automatic reconnect, a persistent session (`clean_session = false`), and QoS 1 for sensor data. The buffer itself is not persistent, so it is lost if the Gateway process stops.
 
 ## Requirements
-1. Core Data Flow (Upwards)
 
-    The Gateway must periodically request/acquire sensor data from the Edge device.
+1. **Core data flow (upwards)**
 
-    The Gateway must transmit that collected data to the Cloud.
+    The Gateway must periodically request sensor data from the Edge Device and transmit the collected data to the Cloud.
 
-2. Network Resilience (Offline Buffering)
+2. **Network resilience (offline buffering)**
 
-    If the network connection drops, the system must not lose any data.
+    If the network connection drops, the system should not lose completed measurements. Once the connection is restored, the Gateway should automatically resend buffered data to the Cloud.
 
-    Once the connection is restored, the Gateway must automatically resend the buffered data to the Cloud.
+3. **Remote control (downwards)**
 
-3. Remote Control (Downwards)
+    The Cloud must be able to send an `Immediate Measurement` (`Measure Now`) command to the Gateway. The Gateway must receive it, trigger a measurement on the Edge Device, and handle the result.
 
-    The Cloud must be able to send an "Immediate Measurement" (Measure Now) command down to the Gateway.
+4. **Specific edge cases**
 
-    The Gateway must receive this, trigger the measurement on the Edge device, and handle the result.
+    - **Duplicate commands:** repeated commands are coalesced while a measurement is in progress.
+    - **Timeouts:** the request fails after two seconds, is logged, and can be retried on the next interval.
+    - **Reconnections:** MQTT reconnects automatically and buffered measurements are sent when the connection is available again.
+    - **Logging:** connection events, errors, requests, and data flows are logged.
 
-4. Specific Edge Cases to Handle
-Throughout all of the above, your logic must explicitly account for:
+## Resources
 
-    Duplicate commands: What happens if the Cloud sends the "Measure Now" instruction multiple times in a row?
-
-    Timeouts: What happens if the Gateway asks the Edge for data, but the Edge is unresponsive?
-
-    Reconnections: How does the system behave when a broken connection (Edge-to-Gateway or Gateway-to-Cloud) comes back online?
-
-    Logging: Keeping a record of these events, errors, and data flows.
-
-
-    ## Resources
-    * https://yhirose.github.io/cpp-httplib/en/
-    * https://curl.se/libcurl/c/libcurl-tutorial.html
-    * https://github.com/eclipse-paho/paho.mqtt.cpp/tree/master/examples
-    * https://eclipse.dev/paho/files/cppdoc/index.html
+- [cpp-httplib documentation](https://yhirose.github.io/cpp-httplib/en/)
+- [libcurl tutorial](https://curl.se/libcurl/c/libcurl-tutorial.html)
+- [Paho MQTT C++ examples](https://github.com/eclipse-paho/paho.mqtt.cpp/tree/master/examples)
+- [Paho MQTT C++ API documentation](https://eclipse.dev/paho/files/cppdoc/index.html)
