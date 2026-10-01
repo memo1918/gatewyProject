@@ -24,18 +24,11 @@ def on_message(client, userdata, msg):
     global latest_data
     payload = msg.payload.decode("utf-8")
     print(f"[Cloud] Received Data: {payload}")
-    try:
-        # Assuming Gateway sends JSON like: {"sensor_value": 42.5}
-        data = json.loads(payload)
-        latest_data = {
-            "timestamp": datetime.now().strftime("%H:%M:%S"),
-            "value": data.get("sensor_value", payload)
-        }
-    except json.JSONDecodeError:
-        latest_data = {
-            "timestamp": datetime.now().strftime("%H:%M:%S"),
-            "value": payload
-        }
+    
+    latest_data = {
+        "timestamp": datetime.now().strftime("%H:%M:%S"),
+        "value": payload
+    }
 
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect

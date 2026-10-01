@@ -65,3 +65,10 @@ Throughout all of the above, your logic must explicitly account for:
     Reconnections: How does the system behave when a broken connection (Edge-to-Gateway or Gateway-to-Cloud) comes back online?
 
     Logging: Keeping a record of these events, errors, and data flows.
+
+
+    ## Resources
+    https://yhirose.github.io/cpp-httplib/en/
+    https://curl.se/libcurl/c/libcurl-tutorial.html
+    https://github.com/eclipse-paho/paho.mqtt.cpp/tree/master/examples
+    https://eclipse.dev/paho/files/cppdoc/index.html
