@@ -25,7 +25,9 @@ set(CPR_CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(cpr)
 
 # Define the executable
-add_executable(gateway main.cpp)
+add_executable(gateway main.cpp
+    logger.hpp
+    logger.cpp)
 
 # Link the libraries
 target_link_libraries(gateway PRIVATE 

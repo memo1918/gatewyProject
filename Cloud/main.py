@@ -7,6 +7,7 @@ MQTT_BROKER = "broker.hivemq.com"
 MQTT_PORT = 1883
 TOPIC_DATA_UP = "assignment/orange_pi/sensor_data"
 TOPIC_CMD_DOWN = "assignment/orange_pi/commands"
+CLOUD_CLIENT_ID = "my_custom_orange_pi_cloud_9988"
 
 app = Flask(__name__)
 
@@ -44,7 +45,7 @@ def on_message(client, userdata, msg):
     except ValueError as e:
         print(f"[Cloud] Error parsing data: {e}")
 
-mqtt_client = mqtt.Client()
+mqtt_client = mqtt.Client(client_id=CLOUD_CLIENT_ID, clean_session=False)
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 

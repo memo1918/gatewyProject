@@ -36,6 +36,10 @@ Cloud is also MQTT Broker
 
 4. gateway's get sensor data and wait listen for mqtt from cloud shold run async.
 
+5. if request timeouts to edge device, gateway simply tries again on the next interval.
+
+6. Reconnection between Cloud-Gateway happenes automaticly by Paho MQTT. We set the `is_cloud_connected` flag and buffer is send to cloud.
+
 ## Requirements
 1. Core Data Flow (Upwards)
 
@@ -68,7 +72,7 @@ Throughout all of the above, your logic must explicitly account for:
 
 
     ## Resources
-    https://yhirose.github.io/cpp-httplib/en/
-    https://curl.se/libcurl/c/libcurl-tutorial.html
-    https://github.com/eclipse-paho/paho.mqtt.cpp/tree/master/examples
-    https://eclipse.dev/paho/files/cppdoc/index.html
+    * https://yhirose.github.io/cpp-httplib/en/
+    * https://curl.se/libcurl/c/libcurl-tutorial.html
+    * https://github.com/eclipse-paho/paho.mqtt.cpp/tree/master/examples
+    * https://eclipse.dev/paho/files/cppdoc/index.html

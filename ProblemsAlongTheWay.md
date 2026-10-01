@@ -28,3 +28,7 @@ pthread_mutex_unlock(&my_mutex); // 2. Unlock
     
 } // 2. Unlocks automatically
 ```
+
+## MQTT connection status issue
+Turns out MQTT only checks if the message is send to broker. so we have no idea if the cloud is alive or not or receiving our messages. 
+Turns out broker can store data if we configure mqtt with `clean_session=False`, in this way eventhough gateway thinks its connected to the cloud and sends data, we are not loosing data. For scope of this practice, we are going to assume broker and cloud is always online and internet connection of the gateway is only break point.

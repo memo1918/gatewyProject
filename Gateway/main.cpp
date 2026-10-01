@@ -1,3 +1,4 @@
+#include "logger.hpp"
 #include <stdio.h>
 #include <cpr/cpr.h>
 #include <string>
@@ -37,12 +38,12 @@ std::string getData(std::string endpoint)
   cpr::Response r = cpr::Get(cpr::Url{(edgeDevice1 + endpoint)}, cpr::Timeout{2000});
   // Check network error
   if (r.error.code != cpr::ErrorCode::OK) {
-    printf("Error: %s\n", r.error.message.c_str());
+    log_event("ERROR", "Error fetching data from edge device: " + r.error.message);
     return "";
   }
   // Check HTTP status code
   if (r.status_code >= 400) {
-    printf("HTTP Error: %ld\n", r.status_code);
+    log_event("ERROR", "HTTP Error fetching data from edge device: " + std::to_string(r.status_code));
     return "";
   }
 
@@ -78,16 +79,16 @@ public:
     connection_listener(mqtt::async_client& cli) : cli_(cli) {}
 
     void on_failure(const mqtt::token& tok) override {
-        std::cout << "[MQTT] Connection failed!" << std::endl;
+        log_event("ERROR", "Connection failed!");
         is_cloud_connected = false;
     }
 
     void on_success(const mqtt::token& tok) override {
-        std::cout << "[MQTT] Connected successfully!" << std::endl;
+        log_event("INFO", "Connected successfully!");
         is_cloud_connected = true;
         
         // As soon as we connect, subscribe to the commands topic
-        std::cout << "[MQTT] Subscribing to " << TOPIC_CMD_DOWN << "..." << std::endl;
+        log_event("INFO", "Subscribing to " + std::string(TOPIC_CMD_DOWN) + "...");
         cli_.subscribe(TOPIC_CMD_DOWN, 1);
     }
 };
@@ -95,24 +96,24 @@ public:
 // Callback class for MQTT events
 class action_callback : public virtual mqtt::callback {
     void connection_lost(const std::string& cause) override {
-        std::cout << "\n[MQTT] Connection lost: " << cause << std::endl;
+        log_event("WARN", "Connection lost: " + cause);
         is_cloud_connected = false;
     }
 
     void connected(const std::string& cause) override {
-        std::cout << "\n[MQTT] Auto-reconnected to Cloud!" << std::endl;
+        log_event("INFO", "Auto-reconnected to Cloud!");
         is_cloud_connected = true;
         
     }
 
     void message_arrived(mqtt::const_message_ptr msg) override {
-        std::cout << "\n[MQTT] Command Arrived: " << msg->to_string() << std::endl;
+        log_event("INFO", "Command Arrived: " + msg->to_string());
         force_measure_now = true;
     }
 
     void delivery_complete(mqtt::delivery_token_ptr token) override {
         // Triggers when a message successfully reaches the Cloud
-        std::cout << "[MQTT] Delivery complete for token: " << (token ? token->get_message_id() : -1) << std::endl;
+        // log_event("INFO", "Delivery complete for token: " + std::to_string(token ? token->get_message_id() : -1));
     }
 };
 
@@ -141,8 +142,8 @@ int main() {
       auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_request_time).count();
 
       if ((elapsed >= 5 || force_measure_now) && !worker_busy) {
-          std::cout << "[Gateway] Triggering Edge Request..." << std::endl;
-          
+          log_event("INFO", "Triggering Edge Request...");
+
           force_measure_now = false; // Reset the cloud command flag
           last_request_time = now;   // Reset the 5-second timer
           
@@ -150,6 +151,10 @@ int main() {
           std::thread(fetch_data_from_edge).detach();
       }
 
+      //offline simulation: if seconds are between 30 and 45, simulate offline
+      time_t t = time(NULL);
+      struct tm *tm = localtime(&t);
+      bool simulate_offline = (tm->tm_sec >= 30 && tm->tm_sec <= 45);
 
       // Check if new data is ready to be published or buffered
       if (new_data_ready) {
@@ -161,22 +166,23 @@ int main() {
               data_to_route = latest_sensor_data;
               new_data_ready = false; 
           }
+          
 
           // check if cloud reachable, if yes, publish to cloud, else buffer it
-          if (is_cloud_connected) {
-              std::cout << "[Gateway] Publishing to Cloud: " << data_to_route << std::endl;
+          if (is_cloud_connected && !simulate_offline) {
+              log_event("INFO", "Publishing to Cloud: " + data_to_route);
               mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC_DATA_UP, data_to_route);
               pubmsg->set_qos(1);
               client.publish(pubmsg);
           } else {
-              std::cout << "[Gateway] Offline. Saving to buffer..." << std::endl;
+              log_event("WARN", "Offline (Simulated). Saving to buffer: " + data_to_route);
               offline_buffer.push_back(data_to_route);
           }
       }
 
       // buffer upload after reconnection
-      if (is_cloud_connected && !offline_buffer.empty()) {
-          std::cout << "[Gateway] Reconnected! Uploading " << offline_buffer.size() << " buffered messages..." << std::endl;
+      if (is_cloud_connected && !simulate_offline && !offline_buffer.empty()) {
+          log_event("INFO", "Reconnected! Uploading " + std::to_string(offline_buffer.size()) + " buffered messages...");
           
           for (const auto& payload : offline_buffer) {
               mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC_DATA_UP, payload);
